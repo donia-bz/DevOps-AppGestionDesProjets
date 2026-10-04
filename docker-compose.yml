@@ -1,0 +1,50 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: gp-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test_db
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - gp-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ${DOCKER_USER:-local}/gestion-projets-backend:latest
+    build: ./backend
+    container_name: gp-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/test_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - gp-net
+    ports:
+      - "8085:8080"
+    restart: on-failure
+
+  frontend:
+    image: ${DOCKER_USER:-local}/gestion-projets-frontend:latest
+    build: ./frontend
+    container_name: gp-frontend
+    depends_on:
+      - backend
+    networks:
+      - gp-net
+    ports:
+      - "4200:80"
+
+networks:
+  gp-net:
+
+volumes:
+  mysql-data:
