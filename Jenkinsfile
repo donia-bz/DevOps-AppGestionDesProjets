@@ -22,25 +22,25 @@ pipeline {
             }
         }
 
-        stage('3 - SonarQube') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    dir('backend') {
-                        sh 'mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar -Dsonar.projectKey=gestion-projets -Dsonar.projectName=GestionProjets -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_AUTH_TOKEN'
-                    }
-                }
-            }
-        }
-
-        stage('4 - Maven Test') {
+        stage('3 - Maven Test') {
             steps {
                 dir('backend') {
-                    sh 'mvn -B test'
+                    sh 'mvn -B test jacoco:report'
                 }
             }
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'backend/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('4 - SonarQube') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    dir('backend') {
+                        sh 'mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar -Dsonar.projectKey=gestion-projets -Dsonar.projectName=GestionProjets -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_AUTH_TOKEN'
+                    }
                 }
             }
         }
